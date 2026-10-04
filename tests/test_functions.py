@@ -45,12 +45,15 @@ class TestRosenbrock:
     def test_gradient_vs_central_differences(self, dim: int):
         rosen = Rosenbrock()
         rng = np.random.default_rng(42)
-        # Test 10 random points inside experimental domain [-5, 10]
-        for _ in range(10):
-            x = rng.uniform(-2.0, 3.0, size=dim)
+        # 50 random points over the WHOLE experimental domain [-5, 10].
+        # Tolerance: f reaches ~1e6 here, so central-difference round-off is about
+        # eps * |f| / h ~ 2e-16 * 1e6 / 1e-6 = 2e-4 (absolute). Hence atol=1e-3,
+        # while rtol=1e-6 keeps the check strict relative to gradients of ~1e5.
+        for _ in range(50):
+            x = rng.uniform(-5.0, 10.0, size=dim)
             grad_analytic = rosen.gradient(x)
             grad_numerical = numerical_gradient(rosen, x, h=1e-6)
-            np.testing.assert_allclose(grad_analytic, grad_numerical, rtol=1e-4, atol=1e-4)
+            np.testing.assert_allclose(grad_analytic, grad_numerical, rtol=1e-6, atol=1e-3)
 
     def test_invalid_dimension(self):
         rosen = Rosenbrock()
@@ -85,12 +88,25 @@ class TestRastrigin:
     def test_gradient_vs_central_differences(self, dim: int):
         rastrigin = Rastrigin()
         rng = np.random.default_rng(123)
-        # Test 10 random points inside domain [-5.12, 5.12]
-        for _ in range(10):
+        # 50 random points over the whole domain [-5.12, 5.12]. Here |f| < ~100,
+        # so round-off error is ~1e-8 and truncation error O(h^2) is ~1e-9.
+        for _ in range(50):
             x = rng.uniform(-5.12, 5.12, size=dim)
             grad_analytic = rastrigin.gradient(x)
             grad_numerical = numerical_gradient(rastrigin, x, h=1e-6)
-            np.testing.assert_allclose(grad_analytic, grad_numerical, rtol=1e-4, atol=1e-4)
+            np.testing.assert_allclose(grad_analytic, grad_numerical, rtol=1e-6, atol=1e-6)
+
+    def test_central_difference_check_detects_wrong_sign(self):
+        """Negative control: the verification must FAIL for a sign-flipped gradient.
+
+        Shows the central-difference test is not vacuous: a gradient written as
+        2x - 20*pi*sin(2*pi*x) (wrong sign on the periodic term) is rejected.
+        """
+        rastrigin = Rastrigin()
+        x = np.array([0.25, -1.3, 2.7])
+        wrong_grad = 2.0 * x - 20.0 * np.pi * np.sin(2.0 * np.pi * x)
+        grad_numerical = numerical_gradient(rastrigin, x, h=1e-6)
+        assert not np.allclose(wrong_grad, grad_numerical, rtol=1e-6, atol=1e-6)
 
     def test_invalid_dimension(self):
         rastrigin = Rastrigin()
