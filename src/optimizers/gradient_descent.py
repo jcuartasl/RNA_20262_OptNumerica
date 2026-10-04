@@ -111,9 +111,12 @@ def optimize(
     })
 
     # Optimization loop
+    # One full iteration costs 2n (gradient) + 1 (f at the new point).
+    # Only start an iteration if the WHOLE iteration fits in the budget;
+    # otherwise a gradient would be charged without ever taking the step.
+    iteration_cost = 2 * dimension + 1
     while True:
-        # Check if calculating gradient would exceed budget (costs 2 * n)
-        if not counter.can_evaluate_gradient(budget):
+        if counter.equivalent_evaluations + iteration_cost > budget:
             break
 
         grad = counter.gradient(x)
