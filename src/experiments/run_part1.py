@@ -34,6 +34,7 @@ def run_single(
     dimension: int,
     optimizer_name: str,
     seed: int,
+    learning_rate: float | None = None,
 ) -> Dict[str, Any]:
     """Ejecuta una única corrida experimental."""
 
@@ -58,6 +59,14 @@ def run_single(
             f"Disponibles: {config['dimensions']}"
         )
 
+    if learning_rate is not None and learning_rate <= 0:
+        raise ValueError("learning_rate debe ser mayor que 0.")
+
+    if learning_rate is not None and optimizer_name != "gd":
+        raise ValueError(
+            "--learning-rate solo puede utilizarse con Gradient Descent (gd)."
+        )
+
     # -----------------------------
     # Función objetivo
     # -----------------------------
@@ -77,6 +86,11 @@ def run_single(
         optimizer_config = dict(config["gradient_descent"])
         optimizer_config["tolerance"] = tolerance
 
+        # Si se especifica desde la consola, reemplaza temporalmente
+        # el valor configurado en part1.yaml.
+        if learning_rate is not None:
+            optimizer_config["learning_rate"] = learning_rate
+
         result = optimize_gd(
             function=function,
             bounds=bounds,
@@ -84,6 +98,11 @@ def run_single(
             seed=seed,
             budget=budget,
             config=optimizer_config,
+        )
+
+        # Guardamos el learning rate realmente utilizado.
+        result["learning_rate"] = float(
+            optimizer_config["learning_rate"]
         )
 
     elif optimizer_name == "pso":
@@ -142,6 +161,9 @@ def result_to_row(result: Dict[str, Any]) -> Dict[str, Any]:
         "success": result["success"],
     }
 
+    if "learning_rate" in result:
+        row["learning_rate"] = result["learning_rate"]
+
     if "initial_x" in result:
         row["initial_x"] = json.dumps(result["initial_x"])
 
@@ -152,6 +174,7 @@ def run_batch(
     function_name: str,
     dimension: int,
     optimizer_name: str,
+    learning_rate: float | None = None,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any], Path, Path]:
     """Ejecuta todas las semillas configuradas y guarda los resultados."""
 
@@ -170,6 +193,14 @@ def run_batch(
     function_name = function_name.lower()
     optimizer_name = optimizer_name.lower()
 
+    if learning_rate is not None and learning_rate <= 0:
+        raise ValueError("learning_rate debe ser mayor que 0.")
+
+    if learning_rate is not None and optimizer_name != "gd":
+        raise ValueError(
+            "--learning-rate solo puede utilizarse con Gradient Descent (gd)."
+        )
+
     results: List[Dict[str, Any]] = []
 
     print()
@@ -180,6 +211,15 @@ def run_batch(
     print(f"Dimension: {dimension}")
     print(f"Optimizer: {optimizer_name}")
     print(f"Runs:      {len(seeds)}")
+
+    if optimizer_name == "gd":
+        effective_lr = (
+            learning_rate
+            if learning_rate is not None
+            else float(config["gradient_descent"]["learning_rate"])
+        )
+        print(f"Learning rate: {effective_lr}")
+
     print("-" * 60)
 
     for index, seed in enumerate(seeds, start=1):
@@ -188,6 +228,7 @@ def run_batch(
             dimension=dimension,
             optimizer_name=optimizer_name,
             seed=int(seed),
+            learning_rate=learning_rate,
         )
 
         results.append(result)
@@ -223,6 +264,11 @@ def run_batch(
 
     base_name = f"{function_name}_{dimension}d_{optimizer_name}"
 
+    # Los pilotos con learning rate distinto no pisan otros CSV.
+    if optimizer_name == "gd" and learning_rate is not None:
+        lr_text = format(learning_rate, ".10g").replace(".", "p")
+        base_name += f"_lr_{lr_text}"
+
     raw_path = RAW_RESULTS_DIR / f"{base_name}.csv"
     summary_path = SUMMARY_RESULTS_DIR / f"{base_name}_summary.csv"
 
@@ -246,6 +292,9 @@ def run_batch(
         **statistics,
     }
 
+    if optimizer_name == "gd":
+        summary_row["learning_rate"] = results[0]["learning_rate"]
+
     summary_dataframe = pd.DataFrame([summary_row])
     summary_dataframe.to_csv(summary_path, index=False)
 
@@ -263,6 +312,10 @@ def print_result(result: Dict[str, Any]) -> None:
     print(f"Dimension:              {result['dimension']}")
     print(f"Optimizer:              {result['optimizer']}")
     print(f"Seed:                   {result['seed']}")
+
+    if "learning_rate" in result:
+        print(f"Learning rate:          {result['learning_rate']}")
+
     print("-" * 60)
 
     if "initial_x" in result:
@@ -332,6 +385,16 @@ def parse_args() -> argparse.Namespace:
         help="Optimizador: gd o pso.",
     )
 
+    parser.add_argument(
+        "--learning-rate",
+        type=float,
+        default=None,
+        help=(
+            "Learning rate para Gradient Descent. "
+            "Si no se especifica, se usa el valor de part1.yaml."
+        ),
+    )
+
     mode_group = parser.add_mutually_exclusive_group(required=True)
 
     mode_group.add_argument(
@@ -359,6 +422,7 @@ def main() -> None:
             function_name=args.function,
             dimension=args.dim,
             optimizer_name=args.optimizer,
+            learning_rate=args.learning_rate,
         )
 
         print_batch_summary(
@@ -373,6 +437,7 @@ def main() -> None:
             dimension=args.dim,
             optimizer_name=args.optimizer,
             seed=args.seed,
+            learning_rate=args.learning_rate,
         )
 
         print_result(result)
