@@ -1,0 +1,2 @@
+function,dimension,optimizer,global_minimum,tolerance,runs,mean,std,best,worst,successes,success_rate
+rastrigin,3,pso,0.0,0.0001,30,0.033165301929560444,0.18165383978302801,0.0,0.9949590570933005,29,96.66666666666667

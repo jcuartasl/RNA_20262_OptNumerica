@@ -1,0 +1,2 @@
+function,dimension,optimizer,global_minimum,tolerance,runs,mean,std,best,worst,successes,success_rate
+rosenbrock,2,pso,0.0,0.0001,30,9.608347257094146e-10,3.0399683864876537e-09,5.629496643343483e-15,1.595240349066052e-08,30,100.0

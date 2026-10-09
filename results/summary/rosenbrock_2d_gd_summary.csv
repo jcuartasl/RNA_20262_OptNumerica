@@ -1,0 +1,2 @@
+function,dimension,optimizer,global_minimum,tolerance,runs,mean,std,best,worst,successes,success_rate,learning_rate
+rosenbrock,2,gd,0.0,0.0001,30,3.5399184340330274,4.166341412831896,0.027853939527225896,14.849849635359059,0,0.0,0.0002
