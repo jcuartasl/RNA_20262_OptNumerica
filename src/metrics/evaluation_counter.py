@@ -1,65 +1,69 @@
-class EvaluationCounter:
+"""Evaluation counter and fair-comparison wrapper for objective functions."""
+
+from typing import Tuple, Union
+import numpy as np
+from ..functions.base import ObjectiveFunction
+
+
+class CountedFunction:
+    """Wrapper that accurately tracks real calls to f(x) and grad(f)(x).
+    
+    Attributes:
+        base_function: The underlying ObjectiveFunction.
+        dimension: Problem dimension n.
+        f_evaluations: Integer count N_f of function evaluations.
+        gradient_evaluations: Integer count N_grad of gradient evaluations.
     """
-    Lleva el conteo de evaluaciones realizadas durante una optimización.
 
-    Se registran por separado:
-    - Evaluaciones de la función objetivo f.
-    - Evaluaciones del gradiente ∇f.
-
-    Para comparar los algoritmos bajo un presupuesto común se utiliza:
-
-        E_eq = N_f + 2*n*N_grad
-
-    donde:
-        N_f    = número de evaluaciones de f
-        N_grad = número de evaluaciones del gradiente
-        n      = dimensión del problema
-    """
-
-    def __init__(self, dimension: int):
-        if dimension <= 0:
-            raise ValueError("La dimensión debe ser mayor que cero.")
-
-        self.dimension = dimension
+    def __init__(self, base_function: ObjectiveFunction, dimension: int):
+        self.base_function = base_function
+        self.dimension = int(dimension)
         self.f_evaluations = 0
         self.gradient_evaluations = 0
 
-    def count_f(self, amount: int = 1):
-        """Registra evaluaciones de la función objetivo."""
-        if amount < 0:
-            raise ValueError("La cantidad de evaluaciones no puede ser negativa.")
+    @property
+    def name(self) -> str:
+        return self.base_function.name
 
-        self.f_evaluations += amount
+    @property
+    def default_bounds(self) -> Tuple[float, float]:
+        return self.base_function.default_bounds
 
-    def count_gradient(self, amount: int = 1):
-        """Registra evaluaciones del gradiente."""
-        if amount < 0:
-            raise ValueError("La cantidad de evaluaciones no puede ser negativa.")
+    @property
+    def global_minimum_f(self) -> float:
+        return self.base_function.global_minimum_f
 
-        self.gradient_evaluations += amount
+    def global_minimum_x(self, dimension: int) -> np.ndarray:
+        return self.base_function.global_minimum_x(dimension)
 
     @property
     def equivalent_evaluations(self) -> int:
-        """
-        Calcula el número de evaluaciones equivalentes.
+        """Calculate total equivalent evaluations E_eq = N_f + 2 * n * N_grad."""
+        return self.f_evaluations + 2 * self.dimension * self.gradient_evaluations
 
-        Se considera que una evaluación del gradiente equivale
-        a 2*n evaluaciones de la función objetivo.
-        """
-        return (
-            self.f_evaluations
-            + 2 * self.dimension * self.gradient_evaluations
-        )
+    def evaluate(self, x: np.ndarray) -> float:
+        """Evaluate f(x) and increment N_f by 1."""
+        self.f_evaluations += 1
+        return self.base_function.evaluate(x)
+
+    def __call__(self, x: np.ndarray) -> float:
+        """Callable interface forwarding to evaluate(x)."""
+        return self.evaluate(x)
+
+    def gradient(self, x: np.ndarray) -> np.ndarray:
+        """Compute grad(f)(x) and increment N_grad by 1."""
+        self.gradient_evaluations += 1
+        return self.base_function.gradient(x)
+
+    def can_evaluate_f(self, budget: int) -> bool:
+        """Check if one additional f evaluation would fit in budget."""
+        return (self.equivalent_evaluations + 1) <= budget
+
+    def can_evaluate_gradient(self, budget: int) -> bool:
+        """Check if one additional gradient evaluation would fit in budget."""
+        return (self.equivalent_evaluations + 2 * self.dimension) <= budget
 
     def reset(self):
-        """Reinicia todos los contadores."""
+        """Reset evaluation counters to zero."""
         self.f_evaluations = 0
         self.gradient_evaluations = 0
-
-    def to_dict(self):
-        """Devuelve las métricas en formato de diccionario."""
-        return {
-            "f_evaluations": self.f_evaluations,
-            "gradient_evaluations": self.gradient_evaluations,
-            "equivalent_evaluations": self.equivalent_evaluations,
-        }

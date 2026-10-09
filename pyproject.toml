@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+# Agrega la raiz del repositorio a sys.path para que `import src...` funcione
+# tanto con `pytest` como con `python -m pytest` (necesario en un clon limpio).
+pythonpath = ["."]
+testpaths = ["tests"]
