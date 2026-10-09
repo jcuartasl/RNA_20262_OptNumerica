@@ -1,0 +1,43 @@
+experiment:
+  runs: 30
+  budget: 10000
+  tolerance: 0.0001
+
+functions:
+  rosenbrock:
+    bounds:
+      - -5.0
+      - 10.0
+    global_minimum: 0.0
+
+  rastrigin:
+    bounds:
+      - -5.12
+      - 5.12
+    global_minimum: 0.0
+
+dimensions:
+  - 2
+  - 3
+
+seeds:
+  start: 0
+  end: 29
+
+gradient_descent:
+  learning_rate: 0.001
+
+evolutionary:
+  population_size: 50
+  mutation_rate: 0.1
+
+pso:
+  population_size: 50
+  inertia: 0.7
+  cognitive: 1.5
+  social: 1.5
+
+differential_evolution:
+  population_size: 50
+  mutation_factor: 0.8
+  crossover_rate: 0.9
