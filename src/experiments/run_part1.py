@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import pandas as pd
 import yaml
@@ -14,6 +14,7 @@ from src.functions import get_function
 from src.metrics.statistics import calculate_statistics
 from src.optimizers.gradient_descent import optimize as optimize_gd
 from src.optimizers.PSO import optimize as optimize_pso
+from src.optimizers.differential_evolution import optimize as optimize_de
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -43,9 +44,10 @@ def run_single(
     function_name = function_name.lower()
     optimizer_name = optimizer_name.lower()
 
-    # -----------------------------
-    # Validaciones
-    # -----------------------------
+    # ---------------------------------------------------------
+    # Validaciones generales
+    # ---------------------------------------------------------
+
     if function_name not in config["functions"]:
         available = ", ".join(config["functions"].keys())
         raise ValueError(
@@ -59,35 +61,38 @@ def run_single(
             f"Disponibles: {config['dimensions']}"
         )
 
-    if learning_rate is not None and learning_rate <= 0:
-        raise ValueError("learning_rate debe ser mayor que 0.")
+    if learning_rate is not None:
+        if learning_rate <= 0:
+            raise ValueError("learning_rate debe ser mayor que 0.")
 
-    if learning_rate is not None and optimizer_name != "gd":
-        raise ValueError(
-            "--learning-rate solo puede utilizarse con Gradient Descent (gd)."
-        )
+        if optimizer_name != "gd":
+            raise ValueError(
+                "--learning-rate solamente puede utilizarse "
+                "con el optimizador gd."
+            )
 
-    # -----------------------------
+    # ---------------------------------------------------------
     # Función objetivo
-    # -----------------------------
+    # ---------------------------------------------------------
+
     function = get_function(function_name)
     bounds = config["functions"][function_name]["bounds"]
 
-    # -----------------------------
-    # Configuración experimental
-    # -----------------------------
+    # ---------------------------------------------------------
+    # Configuración experimental común
+    # ---------------------------------------------------------
+
     budget = int(config["experiment"]["budget_equivalent"])
     tolerance = float(config["experiment"]["tolerance"])
 
-    # -----------------------------
-    # Optimizador
-    # -----------------------------
+    # ---------------------------------------------------------
+    # Selección del optimizador
+    # ---------------------------------------------------------
+
     if optimizer_name == "gd":
         optimizer_config = dict(config["gradient_descent"])
         optimizer_config["tolerance"] = tolerance
 
-        # Si se especifica desde la consola, reemplaza temporalmente
-        # el valor configurado en part1.yaml.
         if learning_rate is not None:
             optimizer_config["learning_rate"] = learning_rate
 
@@ -100,7 +105,6 @@ def run_single(
             config=optimizer_config,
         )
 
-        # Guardamos el learning rate realmente utilizado.
         result["learning_rate"] = float(
             optimizer_config["learning_rate"]
         )
@@ -118,15 +122,29 @@ def run_single(
             config=optimizer_config,
         )
 
-    else:
-        raise ValueError(
-            f"Optimizador '{optimizer_name}' todavía no soportado. "
-            "Disponibles actualmente: gd, pso"
+    elif optimizer_name == "de":
+        optimizer_config = dict(config["differential_evolution"])
+        optimizer_config["tolerance"] = tolerance
+
+        result = optimize_de(
+            function=function,
+            bounds=bounds,
+            dimension=dimension,
+            seed=seed,
+            budget=budget,
+            config=optimizer_config,
         )
 
-    # -----------------------------
-    # Metadata de la corrida
-    # -----------------------------
+    else:
+        raise ValueError(
+            f"Optimizador desconocido '{optimizer_name}'. "
+            "Disponibles: gd, pso, de"
+        )
+
+    # ---------------------------------------------------------
+    # Metadatos de la corrida
+    # ---------------------------------------------------------
+
     result["function"] = function_name
     result["dimension"] = dimension
     result["optimizer"] = optimizer_name
@@ -138,12 +156,7 @@ def run_single(
 
 
 def result_to_row(result: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Convierte el resultado completo de una corrida en una fila
-    apta para guardar en CSV.
-
-    El history no se guarda aquí porque puede ser muy grande.
-    """
+    """Convierte el resultado de una corrida en una fila de CSV."""
 
     row = {
         "function": result["function"],
@@ -175,33 +188,19 @@ def run_batch(
     dimension: int,
     optimizer_name: str,
     learning_rate: float | None = None,
-) -> Tuple[List[Dict[str, Any]], Dict[str, Any], Path, Path]:
-    """Ejecuta todas las semillas configuradas y guarda los resultados."""
+) -> None:
+    """Ejecuta todas las semillas configuradas y guarda CSV."""
 
     config = load_config()
 
-    seeds = config["experiment"]["seeds"]
-    expected_runs = int(config["experiment"]["runs"])
+    seeds: List[int] = list(config["experiment"]["seeds"])
+    runs = int(config["experiment"]["runs"])
 
-    if len(seeds) != expected_runs:
+    if len(seeds) != runs:
         raise ValueError(
-            "La configuración es inconsistente: "
-            f"experiment.runs={expected_runs}, "
-            f"pero hay {len(seeds)} semillas."
+            f"experiment.runs={runs}, pero se configuraron "
+            f"{len(seeds)} semillas."
         )
-
-    function_name = function_name.lower()
-    optimizer_name = optimizer_name.lower()
-
-    if learning_rate is not None and learning_rate <= 0:
-        raise ValueError("learning_rate debe ser mayor que 0.")
-
-    if learning_rate is not None and optimizer_name != "gd":
-        raise ValueError(
-            "--learning-rate solo puede utilizarse con Gradient Descent (gd)."
-        )
-
-    results: List[Dict[str, Any]] = []
 
     print()
     print("=" * 60)
@@ -210,7 +209,7 @@ def run_batch(
     print(f"Function:  {function_name}")
     print(f"Dimension: {dimension}")
     print(f"Optimizer: {optimizer_name}")
-    print(f"Runs:      {len(seeds)}")
+    print(f"Runs:      {runs}")
 
     if optimizer_name == "gd":
         effective_lr = (
@@ -222,122 +221,37 @@ def run_batch(
 
     print("-" * 60)
 
+    results: List[Dict[str, Any]] = []
+
     for index, seed in enumerate(seeds, start=1):
         result = run_single(
             function_name=function_name,
             dimension=dimension,
             optimizer_name=optimizer_name,
-            seed=int(seed),
+            seed=seed,
             learning_rate=learning_rate,
         )
 
         results.append(result)
 
         print(
-            f"[{index:02d}/{len(seeds)}] "
+            f"[{index:02d}/{runs:02d}] "
             f"seed={seed:2d} | "
             f"best_f={result['best_f']:.8g} | "
             f"E_eq={result['equivalent_evaluations']} | "
             f"success={result['success']}"
         )
 
-    # -----------------------------
-    # Estadísticas
-    # -----------------------------
     global_minimum = float(
         config["functions"][function_name]["global_minimum"]
     )
-
     tolerance = float(config["experiment"]["tolerance"])
 
     statistics = calculate_statistics(
-        results=results,
+        results,
         global_minimum=global_minimum,
         tolerance=tolerance,
     )
-
-    # -----------------------------
-    # Crear carpetas
-    # -----------------------------
-    RAW_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    SUMMARY_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-
-    base_name = f"{function_name}_{dimension}d_{optimizer_name}"
-
-    # Los pilotos con learning rate distinto no pisan otros CSV.
-    if optimizer_name == "gd" and learning_rate is not None:
-        lr_text = format(learning_rate, ".10g").replace(".", "p")
-        base_name += f"_lr_{lr_text}"
-
-    raw_path = RAW_RESULTS_DIR / f"{base_name}.csv"
-    summary_path = SUMMARY_RESULTS_DIR / f"{base_name}_summary.csv"
-
-    # -----------------------------
-    # Guardar resultados crudos
-    # -----------------------------
-    rows = [result_to_row(result) for result in results]
-
-    raw_dataframe = pd.DataFrame(rows)
-    raw_dataframe.to_csv(raw_path, index=False)
-
-    # -----------------------------
-    # Guardar resumen estadístico
-    # -----------------------------
-    summary_row = {
-        "function": function_name,
-        "dimension": dimension,
-        "optimizer": optimizer_name,
-        "global_minimum": global_minimum,
-        "tolerance": tolerance,
-        **statistics,
-    }
-
-    if optimizer_name == "gd":
-        summary_row["learning_rate"] = results[0]["learning_rate"]
-
-    summary_dataframe = pd.DataFrame([summary_row])
-    summary_dataframe.to_csv(summary_path, index=False)
-
-    return results, statistics, raw_path, summary_path
-
-
-def print_result(result: Dict[str, Any]) -> None:
-    """Muestra en consola el resultado de una corrida individual."""
-
-    print()
-    print("=" * 60)
-    print("PARTE 1 - RESULTADO DE EXPERIMENTO")
-    print("=" * 60)
-    print(f"Function:               {result['function']}")
-    print(f"Dimension:              {result['dimension']}")
-    print(f"Optimizer:              {result['optimizer']}")
-    print(f"Seed:                   {result['seed']}")
-
-    if "learning_rate" in result:
-        print(f"Learning rate:          {result['learning_rate']}")
-
-    print("-" * 60)
-
-    if "initial_x" in result:
-        print(f"Initial x:              {result['initial_x']}")
-
-    print(f"Best x:                 {result['best_x']}")
-    print(f"Best f:                 {result['best_f']}")
-    print(f"f evaluations:          {result['f_evaluations']}")
-    print(f"gradient evaluations:   {result['gradient_evaluations']}")
-    print(f"equivalent evaluations: {result['equivalent_evaluations']}")
-    print(f"Iterations:             {result['iterations']}")
-    print(f"Success:                {result['success']}")
-    print("=" * 60)
-    print()
-
-
-def print_batch_summary(
-    statistics: Dict[str, Any],
-    raw_path: Path,
-    summary_path: Path,
-) -> None:
-    """Muestra el resumen estadístico de las corridas."""
 
     print("-" * 60)
     print("RESUMEN ESTADÍSTICO")
@@ -350,17 +264,112 @@ def print_batch_summary(
     print(f"Successes:     {statistics['successes']}")
     print(f"Success rate:  {statistics['success_rate']:.2f}%")
     print("-" * 60)
+
+    # ---------------------------------------------------------
+    # Crear carpetas de resultados
+    # ---------------------------------------------------------
+
+    RAW_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    SUMMARY_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # ---------------------------------------------------------
+    # Nombre de archivos
+    # ---------------------------------------------------------
+
+    base_name = (
+        f"{function_name}_{dimension}d_{optimizer_name}"
+    )
+
+    # Solo los pilotos explícitos de GD llevan LR en el nombre.
+    if optimizer_name == "gd" and learning_rate is not None:
+        lr_text = format(learning_rate, ".10g").replace(".", "p")
+        base_name += f"_lr_{lr_text}"
+
+    raw_path = RAW_RESULTS_DIR / f"{base_name}.csv"
+    summary_path = SUMMARY_RESULTS_DIR / f"{base_name}_summary.csv"
+
+    # ---------------------------------------------------------
+    # Guardar resultados por corrida
+    # ---------------------------------------------------------
+
+    raw_rows = [result_to_row(result) for result in results]
+    pd.DataFrame(raw_rows).to_csv(raw_path, index=False)
+
+    # ---------------------------------------------------------
+    # Guardar resumen
+    # ---------------------------------------------------------
+
+    summary_row = {
+        "function": function_name,
+        "dimension": dimension,
+        "optimizer": optimizer_name,
+        "runs": statistics["runs"],
+        "mean": statistics["mean"],
+        "std": statistics["std"],
+        "best": statistics["best"],
+        "worst": statistics["worst"],
+        "successes": statistics["successes"],
+        "success_rate": statistics["success_rate"],
+        "budget": int(config["experiment"]["budget_equivalent"]),
+        "tolerance": tolerance,
+    }
+
+    if optimizer_name == "gd":
+        summary_row["learning_rate"] = (
+            learning_rate
+            if learning_rate is not None
+            else float(config["gradient_descent"]["learning_rate"])
+        )
+
+    pd.DataFrame([summary_row]).to_csv(
+        summary_path,
+        index=False,
+    )
+
     print(f"Raw CSV:       {raw_path}")
     print(f"Summary CSV:   {summary_path}")
     print("=" * 60)
+
+
+def print_single_result(result: Dict[str, Any]) -> None:
+    """Muestra en consola el resultado de una única corrida."""
+
     print()
+    print("=" * 60)
+    print("PARTE 1 - EJECUCIÓN INDIVIDUAL")
+    print("=" * 60)
+    print(f"Function:               {result['function']}")
+    print(f"Dimension:              {result['dimension']}")
+    print(f"Optimizer:              {result['optimizer']}")
+    print(f"Seed:                   {result['seed']}")
+
+    if "learning_rate" in result:
+        print(f"Learning rate:          {result['learning_rate']}")
+
+    if "initial_x" in result:
+        print(f"Initial x:              {result['initial_x']}")
+
+    print(f"Best x:                 {result['best_x']}")
+    print(f"Best f:                 {result['best_f']}")
+    print(f"F evaluations:          {result['f_evaluations']}")
+    print(
+        f"Gradient evaluations:   "
+        f"{result['gradient_evaluations']}"
+    )
+    print(
+        f"Equivalent evaluations: "
+        f"{result['equivalent_evaluations']}"
+    )
+    print(f"Iterations:             {result['iterations']}")
+    print(f"Success:                {result['success']}")
+    print("=" * 60)
 
 
 def parse_args() -> argparse.Namespace:
-    """Define los argumentos disponibles desde línea de comandos."""
+    """Lee los argumentos de línea de comandos."""
 
     parser = argparse.ArgumentParser(
-        description="Ejecutar experimentos de optimización de la Parte 1."
+        description="Runner de experimentos de la Parte 1."
     )
 
     parser.add_argument(
@@ -381,56 +390,52 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--optimizer",
         required=True,
-        choices=["gd", "pso"],
-        help="Optimizador: gd o pso.",
+        choices=["gd", "pso", "de"],
+        help="Optimizador: gd, pso o de.",
     )
 
     parser.add_argument(
         "--learning-rate",
         type=float,
         default=None,
-        help=(
-            "Learning rate para Gradient Descent. "
-            "Si no se especifica, se usa el valor de part1.yaml."
-        ),
+        help="Learning rate para Gradient Descent.",
     )
 
-    mode_group = parser.add_mutually_exclusive_group(required=True)
+    run_group = parser.add_mutually_exclusive_group(required=True)
 
-    mode_group.add_argument(
+    run_group.add_argument(
         "--seed",
         type=int,
-        help="Ejecutar una sola corrida con esta semilla.",
+        help="Ejecuta una única corrida con esta seed.",
     )
 
-    mode_group.add_argument(
+    run_group.add_argument(
         "--all-seeds",
         action="store_true",
-        help="Ejecutar todas las semillas configuradas.",
+        help="Ejecuta todas las semillas configuradas.",
     )
 
     return parser.parse_args()
 
 
 def main() -> None:
-    """Punto de entrada principal."""
+    """Punto de entrada del runner."""
 
     args = parse_args()
 
+    if args.learning_rate is not None and args.optimizer != "gd":
+        raise ValueError(
+            "--learning-rate solamente puede utilizarse "
+            "con --optimizer gd."
+        )
+
     if args.all_seeds:
-        _, statistics, raw_path, summary_path = run_batch(
+        run_batch(
             function_name=args.function,
             dimension=args.dim,
             optimizer_name=args.optimizer,
             learning_rate=args.learning_rate,
         )
-
-        print_batch_summary(
-            statistics=statistics,
-            raw_path=raw_path,
-            summary_path=summary_path,
-        )
-
     else:
         result = run_single(
             function_name=args.function,
@@ -440,7 +445,7 @@ def main() -> None:
             learning_rate=args.learning_rate,
         )
 
-        print_result(result)
+        print_single_result(result)
 
 
 if __name__ == "__main__":
