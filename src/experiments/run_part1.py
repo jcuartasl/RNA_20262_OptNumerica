@@ -15,6 +15,7 @@ from src.metrics.statistics import calculate_statistics
 from src.optimizers.gradient_descent import optimize as optimize_gd
 from src.optimizers.PSO import optimize as optimize_pso
 from src.optimizers.differential_evolution import optimize as optimize_de
+from src.optimizers.AE import optimize as optimize_ae
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -135,10 +136,23 @@ def run_single(
             config=optimizer_config,
         )
 
+    elif optimizer_name == "ae":
+        optimizer_config = dict(config["evolutionary"])
+        optimizer_config["tolerance"] = tolerance
+
+        result = optimize_ae(
+            function=function,
+            bounds=bounds,
+            dimension=dimension,
+            seed=seed,
+            budget=budget,
+            config=optimizer_config,
+        )
+
     else:
         raise ValueError(
             f"Optimizador desconocido '{optimizer_name}'. "
-            "Disponibles: gd, pso, de"
+            "Disponibles: gd, pso, de, ae"
         )
 
     # ---------------------------------------------------------
@@ -390,8 +404,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--optimizer",
         required=True,
-        choices=["gd", "pso", "de"],
-        help="Optimizador: gd, pso o de.",
+        choices=["gd", "pso", "de", "ae"],
+        help="Optimizador: gd, pso, de o ae.",
     )
 
     parser.add_argument(
