@@ -19,9 +19,18 @@ gradient_descent:
   learning_rate: 0.001
   tol_grad: 1.0e-8
 
+
 evolutionary:
   population_size: 50
+  tournament_size: 3
+  crossover_rate: 0.90
+  alpha: 0.5
   mutation_rate: 0.10
+  mutation_sigma_rel: 0.10
+  n_elites: 2
+  max_generations: null
+  record_population: false
+
 
 pso:
   population_size: 50
