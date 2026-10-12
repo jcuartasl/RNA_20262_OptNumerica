@@ -10,13 +10,16 @@ experiment:
 functions:
   rosenbrock:
     bounds: [-5.0, 10.0]
+    global_minimum: 0.0
+
   rastrigin:
     bounds: [-5.12, 5.12]
+    global_minimum: 0.0
 
 dimensions: [2, 3]
 
 gradient_descent:
-  learning_rate: 0.001
+  learning_rate: 0.0002
   tol_grad: 1.0e-8
 
 

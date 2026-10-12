@@ -1,0 +1,2 @@
+function,dimension,optimizer,runs,mean,std,best,worst,successes,success_rate,budget,tolerance
+rastrigin,3,de,30,0.0006348004700390911,0.0024683626074138237,3.562092842912534e-10,0.013388310577941098,25,83.33333333333334,10000,0.0001
