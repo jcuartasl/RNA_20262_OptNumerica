@@ -1,0 +1,2 @@
+function,dimension,optimizer,runs,mean,std,best,worst,successes,success_rate,budget,tolerance
+rosenbrock,2,ae,30,0.04193778701001732,0.07346605426518177,4.164768488490215e-06,0.30223480499560545,5,16.666666666666664,10000,0.0001
