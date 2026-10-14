@@ -1,0 +1,2 @@
+function,dimension,optimizer,global_minimum,tolerance,runs,mean,std,best,worst,successes,success_rate,learning_rate
+rastrigin,3,gd,0.0,0.0001,30,25.503960441549548,11.900687200974206,4.974790247647377,49.747445869084444,0,0.0,0.0002
