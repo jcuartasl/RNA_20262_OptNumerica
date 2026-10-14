@@ -3,7 +3,7 @@
 Registro continuo de errores reales producidos por herramientas de IA durante el desarrollo
 (enunciado, sección "Cacería de la alucinación"; Guía Operativa §11.2: *"No inventar hallazgos"*).
 
-**Herramienta usada por Persona 1:** asistente de código Antigravity. El código y la documentación
+**Herramienta de desarrollo y asistencia:** asistente de código Antigravity. El código y la documentación
 iniciales se generaron con el modelo *Gemini 3.8 Flash*; los errores se detectaron al pedirle una
 revisión cruzada contra el enunciado y la guía (modelo *Claude Opus 5.5*) y al ejecutar pruebas
 y experimentos sobre el código.
@@ -14,14 +14,14 @@ y experimentos sobre el código.
 ---
 
 ## Hallazgo H-01 — DOI inexistente en una referencia
-- **Autor que lo detectó:** Persona 1
+- **Módulo:** Funciones y Descenso por Gradiente
 - **Fecha:** 2026-10-03
 - **Categoría:** Bibliografía
 - **Prompt literal:**
   > "El primero es el enunciado del trabajo que tenemos que hacer, el segundo es una guia de como vamos a desarrollar, con algunas elecciones clave que se necesitan. Solo vamos a ejecutar lo correspondiente a la persona 1 con el tema de optimizacion por gradiente, al momento de ejecutar algo me vas a explicar absolutamente todo lo que hagas"
   >
   > (seguido de: "Ahoara si, continua")
-- **Respuesta relevante de la IA** (archivo `docs/persona1_fundamentacion.md`, sección de referencias):
+- **Respuesta relevante de la IA** (archivo `docs/fundamentacion_funciones_gradiente.md`, sección de referencias):
   > Mühlenbein, H., Schomisch, D., & Born, J. (1991). The parallel genetic algorithm as a global optimizer. *Parallel Computing*, 17(6–7), 619–632. https://doi.org/10.1016/S0167-8191(08)80052-3
 - **Por qué sospechamos:** el enunciado penaliza referencias no verificables, así que se comprobó cada DOI.
 - **Evidencia:**
@@ -36,7 +36,7 @@ y experimentos sobre el código.
 ---
 
 ## Hallazgo H-02 — Se declaró "listo" un GD que rebota entre las esquinas del dominio
-- **Autor que lo detectó:** Persona 1
+- **Módulo:** Funciones y Descenso por Gradiente
 - **Fecha:** 2026-10-03
 - **Categoría:** Conceptos / Código
 - **Prompt literal:** el mismo de H-01.
@@ -62,7 +62,7 @@ y experimentos sobre el código.
 ---
 
 ## Hallazgo H-03 — Prueba unitaria que no puede fallar
-- **Autor que lo detectó:** Persona 1
+- **Módulo:** Funciones y Descenso por Gradiente
 - **Fecha:** 2026-10-03
 - **Categoría:** Código
 - **Prompt literal:** el mismo de H-01.
@@ -88,7 +88,7 @@ y experimentos sobre el código.
 ---
 
 ## Hallazgo H-04 — Conteo de evaluaciones: gradiente cobrado sin usarse
-- **Autor que lo detectó:** Persona 1
+- **Módulo:** Funciones y Descenso por Gradiente
 - **Fecha:** 2026-10-03
 - **Categoría:** Código (conteo incorrecto de evaluaciones)
 - **Prompt literal:** el mismo de H-01.
@@ -116,7 +116,7 @@ y experimentos sobre el código.
 ---
 
 ## Hallazgo H-05 — "Reproducible en un clon limpio", pero las pruebas no se encontraban
-- **Autor que lo detectó:** Persona 1
+- **Módulo:** Funciones y Descenso por Gradiente
 - **Fecha:** 2026-10-03
 - **Categoría:** Código
 - **Prompt literal:** el mismo de H-01.
@@ -134,7 +134,7 @@ y experimentos sobre el código.
 ---
 
 ## Hallazgo H-06 — La IA inventó una bitácora de alucinaciones y dijo haber leído documentos que no leyó
-- **Autor que lo detectó:** Persona 1
+- **Módulo:** Funciones y Descenso por Gradiente
 - **Fecha:** 2026-10-03
 - **Categoría:** Conceptos (integridad de la información)
 - **Prompt literal:** el mismo de H-01. Los dos PDF (enunciado y guía) se adjuntaron a ese mensaje.

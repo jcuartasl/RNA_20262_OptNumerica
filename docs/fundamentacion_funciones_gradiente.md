@@ -1,7 +1,6 @@
-# Fundamentación Matemática y Aporte Técnico: Persona 1
-## Funciones de Prueba, Gradientes Analíticos y Descenso por Gradiente
+# Fundamentación Matemática: Funciones de Prueba y Descenso por Gradiente
+## Rosenbrock, Rastrigin y Descenso por Gradiente
 
-**Autor:** Persona 1 (Funciones + Gradient Descent)  
 **Curso:** Redes Neuronales y Algoritmos Bioinspirados  
 **Semestre:** 2026-02 — Universidad Nacional de Colombia  
 
@@ -105,11 +104,11 @@ $$E_{eq} = N_f + 2n \cdot N_{grad}$$
 
 ---
 
-## 4. Guía para el Video de Contribución Individual (Persona 1)
+## 4. Guía para el Video de Contribución: Descenso por Gradiente
 
 El video debe durar entre **2 y 3 minutos**, en primera persona y mostrando evidencia real:
 
-1. **Presentación (15 s):** Nombre y rol de **Persona 1: Funciones de Prueba, Gradientes y Descenso por Gradiente**.
+1. **Presentación (15 s):** Presentación del rol de **Funciones de Prueba, Gradientes y Descenso por Gradiente**.
 2. **Código de Funciones y Gradientes (45 s):**
    - Mostrar [`src/functions/rosenbrock.py`](file:///c:/Users/USER/Documents/Universidad/RNA/RNA_20262_OptNumerica/src/functions/rosenbrock.py) y explicar por qué el gradiente para $n \ge 3$ distingue tres casos ($i=1$, intermedios $2 \le i \le n-1$ con término acoplado $200(x_i - x_{i-1}^2)$, y $i=n$).
    - Mostrar [`src/functions/rastrigin.py`](file:///c:/Users/USER/Documents/Universidad/RNA/RNA_20262_OptNumerica/src/functions/rastrigin.py) y señalar el signo $+20\pi \sin(2\pi x_i)$.

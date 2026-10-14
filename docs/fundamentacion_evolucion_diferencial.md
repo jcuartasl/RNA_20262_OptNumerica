@@ -1,7 +1,7 @@
 # Evolución Diferencial (DE): fundamentación e implementación
 
 **Trabajo 1, Parte 1: Optimización numérica** · Redes neuronales y algoritmos bioinspirados · UNAL, Facultad de Minas, 2026-02
-**Responsable:** Persona 4 (evolución diferencial)
+**Algoritmo:** Evolución Diferencial (DE / rand / 1 / bin)
 **Módulo:** `src/optimizers/differential_evolution.py` · **Tests:** `tests/test_differential_evolution.py`
 
 Este documento recoge la fundamentación matemática de la evolución diferencial, explica cómo se implementó en el proyecto y resume todo lo que se hizo con este algoritmo. La teoría general de los algoritmos evolutivos se desarrolla también en `docs/fundamentacion_ae_de.md`; aquí el foco es la variante exacta que se programó y las decisiones tomadas.
