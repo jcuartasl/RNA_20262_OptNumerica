@@ -721,6 +721,7 @@
           <li><a href="#reproducibilidad">5. Reproducibilidad y Código Abierto</a></li>
           <li><a href="#videos">6. Videos de Contribución Individual</a></li>
           <li><a href="#referencias">7. Referencias</a></li>
+          <li><a href="#comentarios">8. Preguntas y Discusión</a></li>
         </ul>
       </nav>
 
@@ -1749,6 +1750,32 @@ python -m src.experiments.demo</code></pre>
           <li>Virtanen, P., Gommers, R., Oliphant, T. E., Haberland, M., Reddy, T., Cournapeau, D., Burovski, E., Peterson, P., Weckesser, W., Bright, J., van der Walt, S. J., Brett, M., Wilson, J., Millman, K. J., Mayorov, N., Nelson, A. R. J., Jones, E., Kern, R., Larson, E., . . . Vázquez-Baeza, Y. (2020). SciPy 1.0: Fundamental algorithms for scientific computing in Python. <em>Nature Methods</em>, <em>17</em>(3), 261–272. <a href="https://doi.org/10.1038/s41592-019-0686-2" target="_blank" rel="noopener">https://doi.org/10.1038/s41592-019-0686-2</a></li>
         </ul>
       </section>
+
+      <!-- SECCIÓN 8: PREGUNTAS Y DISCUSIÓN -->
+      <section id="comentarios" style="margin-top: 3.5rem; padding-top: 2rem; border-top: 2px solid var(--border);">
+        <h2>8. Preguntas y Discusión</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">
+          ¿Tienes inquietudes o comentarios sobre las pruebas de optimización numérica, el TSP peninsular de España o los hallazgos de alucinaciones? Puedes interactuar o plantear preguntas a continuación a través de <strong>GitHub Discussions</strong>.
+        </p>
+
+        <!-- Widget de comentarios Giscus -->
+        <div class="giscus" style="min-height: 280px;"></div>
+        <script src="https://giscus.app/client.js"
+                data-repo="jcuartasl/RNA_20262_OptCombinatoria_TSP"
+                data-repo-id="R_kgDON7uSgQ"
+                data-category="Announcements"
+                data-category-id="DIC_kwDON7uSgc4Cm5U_"
+                data-mapping="pathname"
+                data-strict="0"
+                data-reactions-enabled="1"
+                data-emit-metadata="0"
+                data-input-position="bottom"
+                data-theme="light"
+                data-lang="es"
+                crossorigin="anonymous"
+                async>
+        </script>
+      </section>
     </article>
   </div>
 
@@ -1775,6 +1802,18 @@ python -m src.experiments.demo</code></pre>
       document.getElementById('progress-bar').style.width = scrolled + '%';
     });
 
+    // Función para sincronizar el tema de Giscus vía postMessage
+    function updateGiscusTheme(theme) {
+      const giscusTheme = theme === 'dark' ? 'dark_dimmed' : 'light';
+      const iframe = document.querySelector('iframe.giscus-frame');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(
+          { giscus: { setConfig: { theme: giscusTheme } } },
+          'https://giscus.app'
+        );
+      }
+    }
+
     // Dark/Light Mode Engine with localStorage Persistence
     function applyTheme(theme) {
       if (theme === 'dark') {
@@ -1788,7 +1827,16 @@ python -m src.experiments.demo</code></pre>
         document.querySelectorAll('.theme-label').forEach(el => el.textContent = 'Modo Oscuro');
         localStorage.setItem('theme', 'light');
       }
+      updateGiscusTheme(theme);
     }
+
+    // Sincronizar tema de Giscus cuando su iframe termine de cargar
+    window.addEventListener('message', (event) => {
+      if (event.origin !== 'https://giscus.app') return;
+      if (!(typeof event.data === 'object' && event.data.giscus)) return;
+      const currentTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      updateGiscusTheme(currentTheme);
+    });
 
     // Initialize Theme
     const savedTheme = localStorage.getItem('theme');
